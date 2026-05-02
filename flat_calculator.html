@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RLMT Twilight Flat Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0c0e14;
+  --surface:#151823;
+  --surface2:#1c2030;
+  --border:#2a2e3e;
+  --text:#e4e6ef;
+  --text2:#8b90a8;
+  --text3:#5a5f77;
+  --accent:#fcb86c;            /* twilight orange */
+  --accent2:#e8964a;
+  --warn:#e8a44a;
+  --warn-bg:rgba(232,164,74,0.08);
+  --danger:#e85a5a;
+  --good:#7ec8a0;
+  --good-bg:rgba(126,200,160,0.08);
+  --g-color:#7ec8a0;
+  --r-color:#e8a070;
+  --i-color:#c47ed4;
+  --mono:'JetBrains Mono',monospace;
+  --sans:'DM Sans',sans-serif;
+}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  min-height:100vh;
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  padding:2rem 1rem;
+}
+.calc{width:100%;max-width:580px}
+.header{margin-bottom:2rem;position:relative}
+.header::after{content:'';position:absolute;bottom:-1rem;left:0;width:48px;height:2px;background:var(--accent);border-radius:1px}
+.header h1{font-family:var(--mono);font-size:1.1rem;font-weight:500;letter-spacing:0.04em;color:var(--text);margin-bottom:0.35rem}
+.header p{font-size:0.82rem;color:var(--text3);font-family:var(--mono);font-weight:300}
+
+.section{margin-bottom:1.4rem}
+.section-label{
+  font-size:0.7rem;color:var(--text3);font-family:var(--mono);
+  text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.6rem;
+  display:flex;justify-content:space-between;align-items:center;
+}
+
+/* filter selector */
+.filter-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.filter-btn{
+  padding:0.7rem 0.5rem;background:var(--surface);
+  border:1px solid var(--border);border-radius:6px;
+  font-family:var(--mono);font-size:0.85rem;font-weight:500;
+  color:var(--text3);cursor:pointer;transition:all 0.15s;
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+}
+.filter-btn .filter-letter{font-size:1rem;font-weight:600}
+.filter-btn .filter-meta{font-size:0.65rem;color:var(--text3);font-weight:300}
+.filter-btn:hover:not(.active){color:var(--text2);border-color:#3a3e4e}
+.filter-btn.active{background:var(--surface2);color:var(--text)}
+.filter-btn.active[data-filter=g]{border-color:var(--g-color);box-shadow:inset 0 -2px 0 var(--g-color)}
+.filter-btn.active[data-filter=r]{border-color:var(--r-color);box-shadow:inset 0 -2px 0 var(--r-color)}
+.filter-btn.active[data-filter=i]{border-color:var(--i-color);box-shadow:inset 0 -2px 0 var(--i-color)}
+
+/* mode toggles */
+.toggle{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.toggle button{
+  flex:1;padding:0.55rem 0.5rem;font-family:var(--mono);font-size:0.7rem;
+  color:var(--text3);background:transparent;border:none;cursor:pointer;
+  transition:all 0.2s;
+}
+.toggle button.active{color:var(--accent);background:var(--surface2)}
+.toggle button:not(:last-child){border-right:1px solid var(--border)}
+.toggle button:hover:not(.active){color:var(--text2)}
+
+/* fields */
+.input-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.input-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.field{position:relative}
+.field label{
+  display:block;font-size:0.68rem;color:var(--text3);font-family:var(--mono);
+  text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.4rem;
+}
+.field input,.field select{
+  width:100%;padding:0.6rem 0.75rem;background:var(--surface);
+  border:1px solid var(--border);border-radius:6px;color:var(--text);
+  font-family:var(--mono);font-size:0.95rem;font-weight:400;
+  outline:none;transition:border-color 0.2s;
+}
+.field input:focus,.field select:focus{border-color:var(--accent)}
+.field .unit{
+  position:absolute;right:0.75rem;bottom:0.65rem;font-size:0.7rem;
+  color:var(--text3);font-family:var(--mono);pointer-events:none;
+}
+
+/* sliders */
+.slider-row{display:flex;align-items:center;gap:12px}
+.slider-row input[type=range]{
+  flex:1;-webkit-appearance:none;appearance:none;
+  height:3px;background:var(--border);border-radius:2px;outline:none;
+}
+.slider-row input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+  background:var(--accent);cursor:pointer;
+  border:2px solid var(--bg);box-shadow:0 0 0 1px var(--accent);
+}
+.slider-row input[type=range]::-moz-range-thumb{
+  width:14px;height:14px;border-radius:50%;
+  background:var(--accent);cursor:pointer;
+  border:2px solid var(--bg);box-shadow:0 0 0 1px var(--accent);
+}
+.slider-row input[type=number]{
+  width:78px;padding:0.45rem 0.5rem;background:var(--surface);
+  border:1px solid var(--border);border-radius:6px;color:var(--text);
+  font-family:var(--mono);font-size:0.85rem;outline:none;text-align:right;
+}
+.slider-row input[type=number]:focus{border-color:var(--accent)}
+
+/* sun altitude scale labels */
+.sun-labels{
+  display:flex;justify-content:space-between;
+  font-family:var(--mono);font-size:0.62rem;color:var(--text3);
+  margin-top:0.3rem;padding:0 4px;
+}
+
+/* results */
+.results{margin-top:1.5rem;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.results-header{
+  padding:0.6rem 1rem;background:var(--surface);
+  border-bottom:1px solid var(--border);
+  font-size:0.7rem;color:var(--text3);font-family:var(--mono);
+  text-transform:uppercase;letter-spacing:0.08em;
+  display:flex;justify-content:space-between;
+}
+.status-tag{text-transform:none;letter-spacing:0;font-weight:400}
+.status-tag.good{color:var(--good)}
+.status-tag.warn{color:var(--warn)}
+.status-tag.bad{color:var(--danger)}
+
+.results-body{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border)}
+.result-cell{background:var(--bg);padding:1rem 1rem}
+.result-label{
+  font-size:0.68rem;color:var(--text3);font-family:var(--mono);
+  text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.3rem;
+}
+.result-num{font-family:var(--mono);font-size:1.35rem;font-weight:600;color:var(--text)}
+.result-unit{font-weight:300;font-size:0.85rem;color:var(--text2);margin-left:2px}
+
+.results-footer{
+  background:var(--surface);border-top:1px solid var(--border);
+  padding:0.6rem 1rem;font-size:0.72rem;color:var(--text3);
+  font-family:var(--mono);
+}
+
+.warning,.success-note{
+  margin-top:0.75rem;border-radius:6px;
+  padding:0.7rem 1rem;font-size:0.78rem;
+  font-family:var(--mono);font-weight:400;display:none;line-height:1.5;
+}
+.warning{background:var(--warn-bg);border:1px solid rgba(232,164,74,0.2);color:var(--warn)}
+.success-note{background:var(--good-bg);border:1px solid rgba(126,200,160,0.2);color:var(--good)}
+
+/* details / calibration */
+.details{margin-top:1.5rem;border:1px solid var(--border);border-radius:6px;background:var(--surface);overflow:hidden}
+.details summary{
+  padding:0.7rem 1rem;font-family:var(--mono);font-size:0.72rem;
+  color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;
+  cursor:pointer;user-select:none;list-style:none;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.details summary::-webkit-details-marker{display:none}
+.details summary::after{content:'+';font-size:1rem;color:var(--text3);font-weight:300}
+.details[open] summary::after{content:'−'}
+.details summary:hover{color:var(--text2)}
+.details-body{padding:0 1rem 1rem 1rem;border-top:1px solid var(--border);padding-top:1rem}
+
+.calib-note{
+  font-family:var(--mono);font-size:0.72rem;color:var(--text3);
+  line-height:1.6;margin-bottom:1rem;
+}
+.calib-table{
+  width:100%;border-collapse:collapse;font-family:var(--mono);
+  font-size:0.78rem;margin-bottom:0.8rem;
+}
+.calib-table th{
+  font-size:0.62rem;color:var(--text3);font-weight:400;
+  text-transform:uppercase;letter-spacing:0.06em;
+  padding:0 6px 6px 6px;text-align:left;
+}
+.calib-table td{padding:3px}
+.calib-table input{
+  width:100%;padding:0.4rem 0.5rem;background:var(--bg);
+  border:1px solid var(--border);border-radius:4px;color:var(--text);
+  font-family:var(--mono);font-size:0.78rem;outline:none;text-align:right;
+}
+.calib-table input:focus{border-color:var(--accent)}
+.calib-table .row-label{
+  color:var(--text3);text-align:left;padding-left:6px;
+}
+.fit-status{
+  font-family:var(--mono);font-size:0.72rem;color:var(--text2);
+  background:var(--bg);border:1px solid var(--border);border-radius:6px;
+  padding:0.6rem 0.8rem;margin-top:0.5rem;line-height:1.5;
+}
+.fit-status .key{color:var(--text3)}
+.fit-status .val{color:var(--text)}
+.fit-actions{display:flex;gap:8px;margin-top:0.7rem}
+.fit-actions button{
+  flex:1;padding:0.5rem;background:var(--surface2);
+  border:1px solid var(--border);border-radius:6px;color:var(--text2);
+  font-family:var(--mono);font-size:0.72rem;cursor:pointer;
+  transition:all 0.15s;
+}
+.fit-actions button:hover{color:var(--text);border-color:#3a3e4e}
+.fit-actions button.primary{color:var(--accent);border-color:rgba(252,184,108,0.3)}
+
+.formula{
+  margin-top:1rem;padding:0.8rem 1rem;background:var(--bg);
+  border:1px solid var(--border);border-radius:6px;
+  font-family:var(--mono);font-size:0.7rem;color:var(--text3);line-height:1.7;
+}
+.formula .op{color:var(--text2)}
+
+@media (max-width:520px){
+  .input-row-3{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+<div class="calc">
+  <div class="header">
+    <h1>Twilight flat calculator</h1>
+    <p>RLMT 20-inch · gri · sky-flat exposure timing</p>
+  </div>
+
+  <!-- FILTER -->
+  <div class="section">
+    <div class="section-label">Filter</div>
+    <div class="filter-row">
+      <button class="filter-btn active" data-filter="g" onclick="setFilter('g')">
+        <span class="filter-letter">g</span><span class="filter-meta" id="filter-meta-g"></span>
+      </button>
+      <button class="filter-btn" data-filter="r" onclick="setFilter('r')">
+        <span class="filter-letter">r</span><span class="filter-meta" id="filter-meta-r"></span>
+      </button>
+      <button class="filter-btn" data-filter="i" onclick="setFilter('i')">
+        <span class="filter-letter">i</span><span class="filter-meta" id="filter-meta-i"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- TIME OF DAY -->
+  <div class="section">
+    <div class="section-label">Twilight</div>
+    <div class="toggle">
+      <button class="active" id="tod-evening" onclick="setTOD('evening')">Evening (sun setting)</button>
+      <button id="tod-morning" onclick="setTOD('morning')">Morning (sun rising)</button>
+    </div>
+  </div>
+
+  <!-- MODE -->
+  <div class="section">
+    <div class="section-label">Mode</div>
+    <div class="toggle">
+      <button class="active" id="mode-peak" onclick="setMode('peak')">Target peak → t</button>
+      <button id="mode-time" onclick="setMode('time')">t → predicted peak</button>
+    </div>
+  </div>
+
+  <!-- SUN ALTITUDE -->
+  <div class="section">
+    <div class="section-label">
+      <span>Sun altitude</span>
+    </div>
+    <div class="slider-row">
+      <input type="range" id="sun-slider" min="-15" max="0" step="0.1" value="-6"
+        oninput="document.getElementById('sun-val').value=this.value; calc();">
+      <input type="number" id="sun-val" value="-6" step="0.1" min="-20" max="0"
+        oninput="document.getElementById('sun-slider').value=this.value; calc();">
+    </div>
+    <div class="sun-labels">
+      <span>−15° deep</span>
+      <span>−10°</span>
+      <span>−6° civil</span>
+      <span>0° horizon</span>
+    </div>
+  </div>
+
+  <!-- TARGET / TIME -->
+  <div class="section" id="input-peak">
+    <div class="section-label">Target peak ADU</div>
+    <div class="slider-row">
+      <input type="range" id="peak-slider" min="5000" max="55000" step="1000" value="30000"
+        oninput="document.getElementById('peak-val').value=this.value; calc();">
+      <input type="number" id="peak-val" value="30000" step="1000"
+        oninput="document.getElementById('peak-slider').value=this.value; calc();">
+    </div>
+  </div>
+  <div class="section" id="input-time" style="display:none">
+    <div class="section-label">Exposure time</div>
+    <div class="slider-row">
+      <input type="range" id="time-slider" min="0.1" max="120" step="0.1" value="10"
+        oninput="document.getElementById('time-val').value=this.value; calc();">
+      <input type="number" id="time-val" value="10" step="0.1"
+        oninput="document.getElementById('time-slider').value=this.value; calc();">
+    </div>
+  </div>
+
+  <!-- DETECTOR (collapsible) -->
+  <details class="details">
+    <summary>Detector</summary>
+    <div class="details-body">
+      <div class="input-row-3">
+        <div class="field">
+          <label>Saturation</label>
+          <input type="number" id="sat" value="60000" oninput="calc()">
+          <span class="unit">ADU</span>
+        </div>
+        <div class="field">
+          <label>Min usable peak</label>
+          <input type="number" id="min-peak" value="10000" oninput="calc()">
+          <span class="unit">ADU</span>
+        </div>
+        <div class="field">
+          <label>Max usable peak</label>
+          <input type="number" id="max-peak" value="40000" oninput="calc()">
+          <span class="unit">ADU</span>
+        </div>
+      </div>
+    </div>
+  </details>
+
+  <!-- CALIBRATION (collapsible) -->
+  <details class="details">
+    <summary>Calibration data (override literature values)</summary>
+    <div class="details-body">
+      <div class="calib-note">
+        Enter measurements from past flats to fit your system. With ≥2 points, both the
+        normalization C₀ and slope k are fit. With 1 point, only C₀ is refit and the
+        literature slope is kept. Leave rows blank to ignore. The fit applies to the
+        currently-selected filter only.
+      </div>
+      <table class="calib-table">
+        <thead>
+          <tr>
+            <th></th><th style="text-align:right">Sun altitude (°)</th>
+            <th style="text-align:right">Exp time (s)</th><th style="text-align:right">Peak ADU</th>
+          </tr>
+        </thead>
+        <tbody id="calib-rows"></tbody>
+      </table>
+      <div class="fit-status" id="fit-status">No calibration entered for this filter.</div>
+      <div class="fit-actions">
+        <button onclick="clearCalib()">Clear filter</button>
+        <button class="primary" onclick="resetToLiterature()">Reset to literature</button>
+      </div>
+    </div>
+  </details>
+
+  <!-- RESULTS -->
+  <div class="results">
+    <div class="results-header">
+      <span>Results</span>
+      <span class="status-tag" id="status-tag"></span>
+    </div>
+    <div class="results-body" id="results-body"></div>
+    <div class="results-footer" id="results-footer"></div>
+  </div>
+
+  <div class="warning" id="warning"></div>
+  <div class="success-note" id="success-note"></div>
+
+  <div class="formula">
+    <span class="op">peak/sec =</span> C₀ · 10<sup>−k · h<sub>☉</sub></sup>  (h<sub>☉</sub> in degrees, negative below horizon)<br>
+    <span class="op">peak =</span> rate · t  ·  Brightness drops ~10× every 1.7° of solar depression
+  </div>
+</div>
+
+<script>
+// === LITERATURE TWILIGHT MODEL ===
+// Tyson & Gal (1993) style: log10(rate) = log10(C0) - k * h_sun
+// where h_sun is in degrees (negative when sun is below horizon).
+// rate units: peak ADU per second on the RLMT detector.
+// k values from atmospheric scattering theory + observed slopes for SDSS bands.
+// C0 chosen so that at h_sun = -8 deg, peak ~ 30000 ADU in a typical exposure
+// (will need calibration for accuracy; values are order-of-magnitude estimates).
+//
+// Slope k: rate drops by 10^k per degree the sun goes deeper.
+// Common values (peak ADU/s/degree): g~0.59, r~0.55, i~0.50.
+// (Bluer light scattered more strongly -> steeper slope.)
+const LITERATURE = {
+  g: { C0: 5.5e7, k: 0.59 },  // C0 = peak ADU/s if sun at horizon (h=0)
+  r: { C0: 4.0e7, k: 0.55 },
+  i: { C0: 2.5e7, k: 0.50 }
+};
+
+// Active model parameters, per filter (mutable - calibration can override)
+let MODEL = {
+  g: { ...LITERATURE.g, source: 'literature' },
+  r: { ...LITERATURE.r, source: 'literature' },
+  i: { ...LITERATURE.i, source: 'literature' }
+};
+
+// Calibration data, per filter: array of {sun_alt, t, peak}
+let CALIB = { g: [], r: [], i: [] };
+const CALIB_ROWS = 4;
+
+let currentFilter = 'g';
+let mode = 'peak';   // 'peak' = target peak -> t, 'time' = t -> peak
+let tod = 'evening';
+
+// === CORE MODEL ===
+// Rate (ADU/s) at given solar altitude h (degrees, negative below horizon)
+function rate(filter, h) {
+  const m = MODEL[filter];
+  return m.C0 * Math.pow(10, m.k * h);  // h is negative -> exponent negative -> rate < C0
+}
+
+// === CALIBRATION FIT ===
+// Linear regression in log-space: log10(peak/t) = log10(C0) + k*h
+function fitCalibration(filter) {
+  const points = CALIB[filter].filter(p =>
+    isFinite(p.sun_alt) && isFinite(p.t) && isFinite(p.peak) && p.t > 0 && p.peak > 0);
+  if (points.length === 0) {
+    MODEL[filter] = { ...LITERATURE[filter], source: 'literature' };
+    return { n: 0 };
+  }
+  if (points.length === 1) {
+    // Refit only C0, keep literature slope
+    const p = points[0];
+    const k = LITERATURE[filter].k;
+    const log_rate = Math.log10(p.peak / p.t);
+    const log_C0 = log_rate - k * p.sun_alt;
+    MODEL[filter] = { C0: Math.pow(10, log_C0), k, source: '1-point fit' };
+    return { n: 1, C0: MODEL[filter].C0, k };
+  }
+  // Linear regression: y = log10(peak/t), x = sun_alt
+  // y = a + b*x  =>  C0 = 10^a, k = b
+  const xs = points.map(p => p.sun_alt);
+  const ys = points.map(p => Math.log10(p.peak / p.t));
+  const n = xs.length;
+  const sx = xs.reduce((a, b) => a + b, 0);
+  const sy = ys.reduce((a, b) => a + b, 0);
+  const sxx = xs.reduce((a, b) => a + b * b, 0);
+  const sxy = xs.reduce((a, b, i) => a + b * ys[i], 0);
+  const denom = n * sxx - sx * sx;
+  if (Math.abs(denom) < 1e-12) {
+    // All x equal -> can't fit slope, fall back
+    const k = LITERATURE[filter].k;
+    const log_C0 = sy / n - k * sx / n;
+    MODEL[filter] = { C0: Math.pow(10, log_C0), k, source: '1-point fit (degenerate)' };
+    return { n: 1, C0: MODEL[filter].C0, k };
+  }
+  const b = (n * sxy - sx * sy) / denom;
+  const a = (sy - b * sx) / n;
+  // Compute residuals (rms in log10 space, then convert to %)
+  const resids = points.map((p, i) => ys[i] - (a + b * xs[i]));
+  const rms = Math.sqrt(resids.reduce((s, r) => s + r * r, 0) / n);
+  const rms_pct = (Math.pow(10, rms) - 1) * 100;
+  MODEL[filter] = { C0: Math.pow(10, a), k: b, source: `${n}-point fit` };
+  return { n, C0: MODEL[filter].C0, k: b, rms_pct };
+}
+
+// === UI ===
+function setFilter(f) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.filter === f));
+  rebuildCalibTable();
+  calc();
+}
+function setTOD(t) {
+  tod = t;
+  document.querySelectorAll('#tod-evening, #tod-morning').forEach(b => b.classList.remove('active'));
+  document.getElementById('tod-' + t).classList.add('active');
+  calc();
+}
+function setMode(m) {
+  mode = m;
+  document.getElementById('input-peak').style.display = m === 'peak' ? '' : 'none';
+  document.getElementById('input-time').style.display = m === 'time' ? '' : 'none';
+  document.querySelectorAll('#mode-peak, #mode-time').forEach(b => b.classList.remove('active'));
+  document.getElementById('mode-' + m).classList.add('active');
+  calc();
+}
+
+function rebuildCalibTable() {
+  const tbody = document.getElementById('calib-rows');
+  let html = '';
+  // Ensure CALIB has CALIB_ROWS slots
+  while (CALIB[currentFilter].length < CALIB_ROWS) {
+    CALIB[currentFilter].push({ sun_alt: NaN, t: NaN, peak: NaN });
+  }
+  for (let i = 0; i < CALIB_ROWS; i++) {
+    const p = CALIB[currentFilter][i] || {};
+    const v = (x) => isFinite(x) ? x : '';
+    html += `<tr>
+      <td class="row-label">${i + 1}</td>
+      <td><input type="number" step="0.1" value="${v(p.sun_alt)}"
+           oninput="updateCalib(${i}, 'sun_alt', this.value)" placeholder="−6.5"></td>
+      <td><input type="number" step="0.1" value="${v(p.t)}"
+           oninput="updateCalib(${i}, 't', this.value)" placeholder="2.0"></td>
+      <td><input type="number" step="100" value="${v(p.peak)}"
+           oninput="updateCalib(${i}, 'peak', this.value)" placeholder="28000"></td>
+    </tr>`;
+  }
+  tbody.innerHTML = html;
+}
+
+function updateCalib(i, key, val) {
+  const num = parseFloat(val);
+  CALIB[currentFilter][i][key] = isNaN(num) ? NaN : num;
+  fitCalibration(currentFilter);
+  calc();
+}
+
+function clearCalib() {
+  CALIB[currentFilter] = [];
+  MODEL[currentFilter] = { ...LITERATURE[currentFilter], source: 'literature' };
+  rebuildCalibTable();
+  calc();
+}
+function resetToLiterature() {
+  MODEL[currentFilter] = { ...LITERATURE[currentFilter], source: 'literature' };
+  // Don't clear calib data, just ignore it for now
+  calc();
+}
+
+function fmtNum(x, digits = 2) {
+  if (!isFinite(x)) return '∞';
+  if (x === 0) return '0';
+  if (Math.abs(x) >= 1000) return x.toFixed(0);
+  if (Math.abs(x) >= 10) return x.toFixed(1);
+  return x.toFixed(digits);
+}
+
+// === MAIN ===
+function calc() {
+  // Refit current filter (cheap, keeps state consistent)
+  const fit = fitCalibration(currentFilter);
+
+  const sun = parseFloat(document.getElementById('sun-val').value);
+  const sat = parseFloat(document.getElementById('sat').value) || 60000;
+  const minPeak = parseFloat(document.getElementById('min-peak').value) || 10000;
+  const maxPeak = parseFloat(document.getElementById('max-peak').value) || 40000;
+  if (isNaN(sun)) return;
+
+  const r = rate(currentFilter, sun);  // ADU/s peak
+
+  // Update filter button metadata (slope shown)
+  for (const f of ['g', 'r', 'i']) {
+    const m = MODEL[f];
+    const tag = m.source === 'literature' ? 'lit.' : 'cal.';
+    document.getElementById('filter-meta-' + f).textContent = `k=${m.k.toFixed(2)} ${tag}`;
+  }
+
+  // Fit status text
+  const fitStatus = document.getElementById('fit-status');
+  const m = MODEL[currentFilter];
+  if (m.source === 'literature') {
+    fitStatus.innerHTML = `<span class="key">source:</span> <span class="val">literature defaults</span><br>
+      <span class="key">C₀ =</span> <span class="val">${m.C0.toExponential(2)}</span>
+      <span class="key" style="margin-left:1rem">k =</span> <span class="val">${m.k.toFixed(3)}</span>`;
+  } else {
+    let extra = '';
+    if (fit.rms_pct !== undefined) {
+      extra = `<span class="key" style="margin-left:1rem">fit RMS:</span> <span class="val">±${fit.rms_pct.toFixed(0)}%</span>`;
+    }
+    fitStatus.innerHTML = `<span class="key">source:</span> <span class="val">${m.source} (${currentFilter}-band)</span>${extra}<br>
+      <span class="key">C₀ =</span> <span class="val">${m.C0.toExponential(2)}</span>
+      <span class="key" style="margin-left:1rem">k =</span> <span class="val">${m.k.toFixed(3)}</span>`;
+  }
+
+  // === MAIN CALCULATION ===
+  let t, peak, c1Label, c1Value, c1Unit, c2Label, c2Value, c2Unit;
+
+  if (mode === 'peak') {
+    const target = parseFloat(document.getElementById('peak-val').value) || 30000;
+    t = target / r;
+    peak = target;
+    c1Label = 'Required exposure';
+    c1Value = fmtNum(t, 3);
+    c1Unit = 's';
+    c2Label = 'Predicted peak';
+    c2Value = Math.round(peak).toLocaleString();
+    c2Unit = 'ADU';
+  } else {
+    t = parseFloat(document.getElementById('time-val').value) || 10;
+    peak = r * t;
+    c1Label = 'Predicted peak';
+    c1Value = Math.round(peak).toLocaleString();
+    c1Unit = 'ADU';
+    c2Label = 'Rate';
+    c2Value = fmtNum(r, 0);
+    c2Unit = 'ADU/s';
+  }
+
+  // === STATUS ===
+  // Useful range: minPeak < peak < maxPeak
+  // Also: need t in a reasonable range (not too short for shutter accuracy, not too long for sky changing)
+  const status = document.getElementById('status-tag');
+  const warn = document.getElementById('warning');
+  const ok = document.getElementById('success-note');
+  warn.style.display = 'none';
+  ok.style.display = 'none';
+
+  let statusText = '', statusClass = '';
+
+  if (peak > sat) {
+    statusText = 'saturated';
+    statusClass = 'bad';
+    warn.style.display = 'block';
+    // Find sun altitude where peak = maxPeak at t = 2s
+    const targetRate = maxPeak / 2;
+    const h_safe = Math.log10(targetRate / m.C0) / m.k;
+    warn.textContent = `Saturated. ${tod === 'evening' ? 'Wait until sun reaches' : 'Start when sun reached'} ` +
+      `≈ ${h_safe.toFixed(1)}° (peak ${maxPeak.toLocaleString()} ADU at 2 s).`;
+  } else if (peak > maxPeak) {
+    statusText = 'too bright';
+    statusClass = 'warn';
+  } else if (peak < minPeak) {
+    statusText = 'too faint';
+    statusClass = 'warn';
+    if (mode === 'peak' && t > 60) {
+      warn.style.display = 'block';
+      warn.textContent = `Exposure ${fmtNum(t,1)} s is too long for a flat (sky changes during readout). ` +
+        `${tod === 'evening' ? 'Sun has set too far' : 'Sun is still too low'}.`;
+    }
+  } else if (t < 0.5) {
+    statusText = 'shutter limited';
+    statusClass = 'warn';
+    warn.style.display = 'block';
+    warn.textContent = `Exposure ${fmtNum(t,2)} s is shorter than typical shutter accuracy (~0.5 s). ` +
+      `${tod === 'evening' ? 'Wait a bit longer for sun to set further' : 'Start a bit earlier'}.`;
+  } else {
+    statusText = 'good range';
+    statusClass = 'good';
+    ok.style.display = 'block';
+    ok.textContent = `Good. Peak ${Math.round(peak).toLocaleString()} ADU at ${fmtNum(t,2)} s ` +
+      `is well-positioned for sky flats.`;
+  }
+  status.textContent = statusText;
+  status.className = 'status-tag ' + statusClass;
+
+  // === RESULTS ===
+  document.getElementById('results-body').innerHTML =
+    '<div class="result-cell"><div class="result-label">' + c1Label + '</div>' +
+    '<div class="result-num">' + c1Value + '<span class="result-unit">' + c1Unit + '</span></div></div>' +
+    '<div class="result-cell"><div class="result-label">' + c2Label + '</div>' +
+    '<div class="result-num">' + c2Value + '<span class="result-unit">' + c2Unit + '</span></div></div>';
+
+  // === FOOTER: useful window times ===
+  // For evening: sky is fading -> rate decreasing as h goes more negative
+  // For morning: sky is brightening -> rate increasing as h goes more positive (less negative)
+  // Useful window: peak/s such that t in [1, 30]s and peak in [minPeak, maxPeak]
+  // peak = r * t, so for fixed t=2s: r_max = maxPeak/2, r_min = minPeak/30
+  const r_max = maxPeak / 1.0;   // shortest reasonable t = 1s
+  const r_min = minPeak / 30.0;  // longest reasonable t = 30s
+  const h_start = Math.log10(r_max / m.C0) / m.k;
+  const h_end = Math.log10(r_min / m.C0) / m.k;
+  const direction = tod === 'evening' ? '↓' : '↑';
+  document.getElementById('results-footer').innerHTML =
+    `Useful window for ${currentFilter}-flats: sun ≈ ${h_start.toFixed(1)}° ${direction} ${h_end.toFixed(1)}° ` +
+    `(${tod})`;
+}
+
+// Initialize
+rebuildCalibTable();
+calc();
+</script>
+</body>
+</html>
